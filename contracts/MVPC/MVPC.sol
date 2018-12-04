@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 /*
-minimum viable payment channel
+Minimum Viable Payment Channel
 
 A student coder offers to pay a set rate of ETH per minute for help
 with a problem or specific programming issue from an interface on Gitcoin.
@@ -12,7 +12,9 @@ an upper bound of ETH, the addresses, and a timeout period. The teacher
 helps the student with the issue and each minute an ephemeral key pair is
 signing and sending messages from the student to the teacher. Finally, the
 teacher can sign and submit the last message they received to get paid and
-the student can withdraw remainers or use for another session.
+the student can withdraw remainder of ETH or use it for another session.
+
+Boy this sounds a lot like SpankChain... with less spanking... I hope.
 */
 
 contract MVPC {
