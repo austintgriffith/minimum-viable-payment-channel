@@ -21,12 +21,17 @@ export default class NewChannel extends Component {
     let remainderAmount = 0
     if(remainder>0){
       remainderAmount = remainder
-      if(remainderAmount > web3.utils.toWei(""+this.state.eth,"ether")){
+      console.log("remainderAmount",remainderAmount,"this.state.eth",web3.utils.toWei(""+this.state.eth,"ether"))
+
+      if(parseInt(remainderAmount) > parseInt(web3.utils.toWei(""+this.state.eth,"ether"))){
+        console.log("REMAINDER IS BIGGER")
         remainderAmount = web3.utils.toWei(""+this.state.eth,"ether")
       }
+      let leftover = web3.utils.toWei(""+this.state.eth,"ether") - remainderAmount
+
       remainderDisplay = (
         <div>
-          (using remainder {web3.utils.fromWei(""+remainderAmount,"ether")} ETH)
+          (using remainder {web3.utils.fromWei(""+remainderAmount,"ether")} ETH and sending {web3.utils.fromWei(""+leftover,"ether")} ETH)
         </div>
       )
     }
