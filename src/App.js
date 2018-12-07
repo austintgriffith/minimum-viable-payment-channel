@@ -1,25 +1,67 @@
 import React, { Component } from 'react';
+import cookie from 'react-cookies';
 import './App.css';
 import { Metamask, Gas, ContractLoader, Transactions, Events, Scaler, Blockie, Address, Button } from "dapparatus"
 import Web3 from 'web3';
+import NewChannel from './components/newChannel.js'
+import ViewChannel from './components/viewChannel.js'
+import Channels from './components/channels.js'
+
 
 class App extends Component {
   constructor(props) {
     super(props);
+
+    //load signer address from cookie or generate
+    let metaPrivateKey = cookie.load('metaPrivateKey');
+    let metaAccount;
+    let tempweb3 = new Web3();
+    if (metaPrivateKey) {
+      metaAccount = tempweb3.eth.accounts.privateKeyToAccount(metaPrivateKey);
+      console.log("Signing account already exists...",metaAccount)
+    }else{
+      metaAccount = tempweb3.eth.accounts.create();
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 365);
+      cookie.save('metaPrivateKey', metaAccount.privateKey, {
+        path: '/',
+        expires
+      });
+      console.log("Generated signing account...",metaAccount)
+    }
+    metaAccount.address = metaAccount.address.toLowerCase()
+
+    //load open channel id from url if it exists
+    let pathParts = window.location.pathname.split("/")
+    pathParts = pathParts.filter(Boolean)
+    console.log("pathParts",pathParts)
+    let viewChannel = ""
+    if(pathParts[0]&&pathParts[0].length==66){
+      viewChannel = pathParts[0]
+    }
+    console.log("viewChannel:",viewChannel)
+
     this.state = {
       web3: false,
       account: false,
       gwei: 4,
       doingTransaction: false,
+      metaAccount: metaAccount,
+      viewChannel: viewChannel,
     }
+
+    setTimeout(this.poll.bind(this),500)
+    setInterval(this.poll.bind(this),1500)
   }
-  handleInput(e){
-    let update = {}
-    update[e.target.name] = e.target.value
-    this.setState(update)
+  async poll() {
+    let {contracts,account} = this.state
+    if(contracts&&account){
+      this.setState({remainder:await contracts.MVPC.remainder(account).call()})
+    }
+
   }
   render() {
-    let {web3,account,contracts,tx,gwei,block,avgBlockTime,etherscan} = this.state
+    let {web3,account,contracts,tx,gwei,block,avgBlockTime,etherscan,viewChannel} = this.state
     let connectedDisplay = []
     let contractsDisplay = []
     if(web3){
@@ -34,7 +76,7 @@ class App extends Component {
          }}
        />
       )
-      /*
+
       connectedDisplay.push(
         <ContractLoader
          key="ContractLoader"
@@ -69,43 +111,80 @@ class App extends Component {
             console.log("Transaction Receipt",transaction,receipt)
           }}
         />
-      )*/
-      /*
+      )
+
       if(contracts){
-        contractsDisplay.push(
-          <div key="UI" style={{padding:30}}>
-            <div>
-              <Address
-                {...this.state}
-                address={contracts.YOURCONTRACT._address}
-              />
+        if(viewChannel){
+          contractsDisplay.push(
+            <div key="UI" style={{padding:30}}>
+              VIEW CHANNEL:
+              <ViewChannel {...this.state}/>
             </div>
-            broadcast string: <input
-                style={{verticalAlign:"middle",width:400,margin:6,maxHeight:20,padding:5,border:'2px solid #ccc',borderRadius:5}}
-                type="text" name="broadcastText" value={this.state.broadcastText} onChange={this.handleInput.bind(this)}
-            />
-            <Button color={this.state.doingTransaction?"orange":"green"} size="2" onClick={()=>{
-                this.setState({doingTransaction:true})
-                //tx(contracts.YOURCONTRACT.YOURFUNCTION(YOURARGUMENTS),(receipt)=>{
-                //  this.setState({doingTransaction:false})
-                //})
-              }}>
-              Send
-            </Button>
-            <Events
-              config={{hide:false}}
-              contract={contracts.YOURCONTRACT}
-              eventName={"YOUREVENT"}
-              block={block}
-              onUpdate={(eventData,allEvents)=>{
-                console.log("EVENT DATA:",eventData)
-                this.setState({events:allEvents})
-              }}
-            />
-          </div>
+          )
+        }else{
+          contractsDisplay.push(
+            <div key="UI" style={{padding:30}}>
+              <NewChannel {...this.state}/>
+              <Channels {...this.state}/>
+            </div>
+          )
+        }
+        contractsDisplay.push(
+          <Events
+            config={{hide:false}}
+            contract={contracts.MVPC}
+            eventName={"Open"}
+            block={block}
+            onUpdate={(eventData,allEvents)=>{
+              console.log("EVENT DATA:",eventData)
+              this.setState({openEvents:allEvents})
+            }}
+          />
+        )
+        contractsDisplay.push(
+          <Events
+            config={{hide:false}}
+            contract={contracts.MVPC}
+            eventName={"Close"}
+            block={block}
+            onUpdate={(eventData,allEvents)=>{
+              console.log("EVENT DATA:",eventData)
+              this.setState({closeEvents:allEvents})
+            }}
+          />
         )
       }
-      */
+
+    }
+
+    let remainderBalance = ""
+    if(this.state.web3&&this.state.remainder>0){
+
+      let withdrawButton = (
+        <Button size="2" onClick={async ()=>{
+
+            tx(contracts.MVPC.withdraw(
+              this.state.account,
+              ""+this.state.remainder,
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ),120000,0,0,(receipt)=>{
+              if(receipt){
+                console.log("SESSION WITHDRAWN:",receipt)
+                //window.location = "/"+receipt.contractAddress
+              }
+            })
+
+          }}
+        >
+          Withdraw
+        </Button>
+      )
+
+      remainderBalance = (
+        <div style={{float:'right'}}>
+          Remainder: {this.state.web3.utils.fromWei(""+this.state.remainder,"ether")} ETH {withdrawButton}
+        </div>
+      )
     }
     return (
       <div className="App">
@@ -119,7 +198,9 @@ class App extends Component {
            }
           }}
         />
+
         {connectedDisplay}
+        {remainderBalance}
         {contractsDisplay}
       </div>
     );

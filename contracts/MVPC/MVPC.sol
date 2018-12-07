@@ -34,16 +34,19 @@ contract MVPC {
       address owner;
       address signer;
       address destination;
-      uint64 timeout;
+      uint256 timeout;
       uint256 stake;
   }
   mapping (bytes32 => Session) public sessions;
 
+  function getStatus(bytes32 id) external view returns (Status) {
+    return sessions[id].status;
+  }
   //keep track of leftover funds
   mapping (address => uint256) public remainder;
 
   //signer can open a session by sending some ETH
-  function open(address signer, address destination, uint64 timeout, uint256 addRemainder) public payable {
+  function open(address signer, address destination, uint256 timeout, uint256 addRemainder) public payable {
     //generate a unique id for the stake
     bytes32 id = keccak256(abi.encodePacked(address(this),signer,destination,timeout,addRemainder,nonce[signer]++));
     //make sure this stake doesn't already exist
@@ -61,13 +64,13 @@ contract MVPC {
       owner: msg.sender,
       signer: signer,
       destination: destination,
-      timeout: timeout,
+      timeout: block.timestamp+timeout,
       stake: value
     });
     //emit event to let the frontend know
     emit Open(id,msg.sender,signer,destination,timeout,addRemainder,value);
   }
-  event Open(bytes32 id, address indexed owner, address indexed signer, address indexed destination, uint64 timeout, uint256 addRemainder, uint256 amount);
+  event Open(bytes32 id, address indexed owner, address indexed signer, address indexed destination, uint256 timeout, uint256 addRemainder, uint256 amount);
 
   //offchain function to get the hash to make less work in the frontend
   function getHash(bytes32 id, uint256 value) public view returns (bytes32) {
@@ -87,7 +90,7 @@ contract MVPC {
     //make sure the signer is correct
     require(sessions[id].signer==signer,"MVPC::close: Signer is not correct");
     //make sure the receiver sig is correct
-    require(sessions[id].destination==receiverSigner,"MVPC::close: Reciver signer is not correct");
+    require(sessions[id].destination==receiverSigner,"MVPC::close: receiver Signer is not correct");
     //close the session to avoid reentrance etc
     sessions[id].status = Status.Closed;
     //never send more than the max amount entered
@@ -113,6 +116,8 @@ contract MVPC {
     bytes32 sessionHash = getHash(id,value);
     address signer = getSigner(sessionHash,signature);
     if(sessions[id].signer!=signer) return false;
+    //make sure there is enough value staked
+    if(sessions[id].stake<value) return false;
     return true;
   }
 
@@ -123,7 +128,7 @@ contract MVPC {
       //session must still be open
       require(sessions[optionalId].status==Status.Open,"MVPC::withdraw: Session is not open");
       //session must be past the timeout period in blocks
-      require(sessions[optionalId].timeout>uint64(block.number),"MVPC::withdraw: Session is not timed out yet");
+      require(sessions[optionalId].timeout<block.timestamp,"MVPC::withdraw: Session is not timed out yet");
       //close the session
       sessions[optionalId].status = Status.Closed;
       //add any remainder for the owner if they have it and have requested it
@@ -146,7 +151,7 @@ contract MVPC {
     bytes32 s;
     uint8 v;
     if (_signature.length != 65) {
-      revert();
+      return address(0);
     }
     assembly {
       r := mload(add(_signature, 32))
@@ -157,7 +162,7 @@ contract MVPC {
       v += 27;
     }
     if (v != 27 && v != 28) {
-      revert();
+      return address(0);
     } else {
       return ecrecover(keccak256(
         abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash)
