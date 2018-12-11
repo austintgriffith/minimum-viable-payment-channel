@@ -1,44 +1,38 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Minimum Viable Payment Channel
 
-## Available Scripts
+[![screencast](https://user-images.githubusercontent.com/2653167/49658666-72057a00-f9f7-11e8-8504-da56c5ee6c0c.png)](https://youtu.be/PYJsNwIiHLg)
 
-In the project directory, you can run:
+This screencast walks through a smart contract where one user opens a channel and sends micropayments via off-chain signatures. Then the receiver closes the channel and collects their payment. 
 
-### `npm start`
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+-------------------
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+## Developement 
 
-### `npm test`
+You will want ganache up and running already:
+```
+ganache-cli
+```
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Clone and install:
+```
+git clone https://github.com/austintgriffith/minimum-viable-payment-channel
+cd minimum-viable-payment-channel
+clevis init
+npm i
+```
 
-### `npm run build`
+Then compile, deploy, and publish the contracts:
+```
+clevis test full
+```
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Then fire up the backend:
+```
+node backend.js
+```
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Then fire up the frontend:
+```
+npm start
+```
