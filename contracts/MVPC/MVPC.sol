@@ -131,6 +131,8 @@ contract MVPC {
       require(sessions[optionalId].timeout<block.timestamp,"MVPC::withdraw: Session is not timed out yet");
       //close the session
       sessions[optionalId].status = Status.Closed;
+      //emit close event
+      emit Close(optionalId,sessions[optionalId].owner,sessions[optionalId].signer,sessions[optionalId].destination,0);
       //add any remainder for the owner if they have it and have requested it
       remainder[sessions[optionalId].owner] += sessions[optionalId].stake;
     }
