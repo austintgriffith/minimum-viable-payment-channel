@@ -22,6 +22,14 @@ clevis init
 npm i
 ```
 
+If the symlink hasn't been created for you, navigate to src and create one:
+
+```
+cd src
+ln -s ../contracts .
+cd ../
+```
+
 Then compile, deploy, and publish the contracts:
 ```
 clevis test full
